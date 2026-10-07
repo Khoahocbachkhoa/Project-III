@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secret
+type: Opaque
+stringData:
+  host: amqp://guest:guest@172.17.0.1:5672/
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-rabbit-auth
+spec:
+  secretTargetRef:
+  - parameter: host
+    name: rabbitmq-secret
+    key: host
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-deployment
+  labels:
+    app: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: worker
+        image: worker:v1
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        env:
+        - name: RABBITMQ_HOST
+          value: "172.17.0.1"
+        - name: DB_HOST
+          value: "172.17.0.1"
+        - name: MINIO_ENDPOINT
+          value: "172.17.0.1:9000"
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker-scaler
+spec:
+  scaleTargetRef:
+    name: worker-deployment
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  cooldownPeriod: 30
+  triggers:
+  - type: rabbitmq
+    metadata:
+      protocol: amqp
+      queueName: tasks
+      mode: QueueLength
+      value: "5"
+    authenticationRef:
+      name: keda-rabbit-auth
