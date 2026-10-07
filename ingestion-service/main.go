@@ -114,6 +114,8 @@ func main() {
 		queueName:   queueName,
 	}
 
+	log.Println("Khởi tạo RabbitMQ thành công")
+
 	// Khởi tạo web server
 	r := gin.Default()
 	v1 := r.Group("/api/v1")
@@ -132,7 +134,7 @@ func main() {
 func (a *App) handleUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("image")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Yêu cầu file ảnh (form-data key: 'image')"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu file ảnh (form-data key: 'image')"})
 		return
 	}
 	defer file.Close()
@@ -141,7 +143,7 @@ func (a *App) handleUpload(c *gin.Context) {
 	ext := filepath.Ext(header.Filename)
 	objectName := fmt.Sprintf("%s%s", taskID, ext)
 
-	// Bước A: Đẩy stream trực tiếp vào MinIO
+	// Lưu ảnh vào minio
 	contentType := header.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
@@ -151,19 +153,19 @@ func (a *App) handleUpload(c *gin.Context) {
 		ContentType: contentType,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi lưu file vào MinIO"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi lưu ảnh vào MinIO"})
 		return
 	}
 
-	// Bước B: Ghi log trạng thái PENDING vào PostgreSQL
+	// Lưu trạng thái PENDING vào psql
 	query := `INSERT INTO tasks (id, object_name, status, created_at, updated_at) VALUES ($1, $2, 'PENDING', NOW(), NOW())`
 	_, err = a.db.Exec(c.Request.Context(), query, taskID, objectName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi khởi tạo task trong DB"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi database"})
 		return
 	}
 
-	// Bước C: Bắn task metadata vào RabbitMQ
+	// Tạo task vào rabbitMQ
 	payloadData := TaskPayload{
 		TaskID:     taskID,
 		ObjectName: objectName,
@@ -188,7 +190,7 @@ func (a *App) handleUpload(c *gin.Context) {
 		return
 	}
 
-	// Bước D: Trả về HTTP 202 Accepted ngay lập tức (~20-50ms)
+	// Trả về JSON cùng với ID
 	c.JSON(http.StatusAccepted, gin.H{
 		"task_id":     taskID,
 		"object_name": objectName,
@@ -196,7 +198,7 @@ func (a *App) handleUpload(c *gin.Context) {
 	})
 }
 
-// Xử lý tra cứu trạng thái tác vụ
+// Tra cứu task
 func (a *App) handleGetTask(c *gin.Context) {
 	taskID := c.Param("id")
 

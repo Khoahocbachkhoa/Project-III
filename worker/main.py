@@ -57,11 +57,6 @@ def process_image_task(task_id, bucket_name, object_name, minio_client, db_conn)
     mock_result = {
         "image_dimensions": {"width": img_width, "height": img_height},
         "inference_time_ms": inference_time_ms,
-        "model_mock": "yolov8-python-worker",
-        "detections": [
-            {"class": "person", "confidence": 0.95, "box": [50, 60, 200, 300]},
-            {"class": "bicycle", "confidence": 0.89, "box": [120, 220, 350, 480]}
-        ]
     }
 
     # Cập nhật kết quả vào psql
@@ -73,7 +68,7 @@ def process_image_task(task_id, bucket_name, object_name, minio_client, db_conn)
         db_conn.commit()
 
 def mark_task_failed(task_id, error_message, db_conn):
-    """Cập nhật trạng thái FAILED kèm nguyên nhân lỗi vào DB"""
+    # Cập nhật trạng thái khi xử lý lỗi
     try:
         with db_conn.cursor() as cursor:
             err_payload = json.dumps({"error": str(error_message)})
@@ -107,10 +102,9 @@ def main():
 
     channel.queue_declare(queue=QUEUE_NAME, durable=True)
 
-    # Mỗi worker chỉ nhận từng task một
     channel.basic_qos(prefetch_count=1)
 
-    def on_message(ch, method, body):
+    def on_message(ch, method, properties, body):
         try:
             task = json.loads(body.decode("utf-8"))
             task_id = task.get("task_id")
@@ -128,7 +122,7 @@ def main():
 
         except Exception as err:
             print(f"[Worker] Lỗi xử lý task: {err}")
-            
+
             # Cập nhật status là failed trong db
             if task_id:
                 mark_task_failed(task_id, str(err), db_conn)
