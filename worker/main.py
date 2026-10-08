@@ -2,6 +2,7 @@ import json
 import time
 import random
 import io
+import os
 import pika
 import psycopg2
 from minio import Minio
@@ -12,15 +13,15 @@ DB_CONFIG = {
     "dbname": "cv_pipeline",
     "user": "dev_user",
     "password": "dev_password",
-    "host": "localhost",
+    "host": os.getenv("DB_HOST", "localhost"),
     "port": 5432
 }
 
-MINIO_ENDPOINT = "localhost:9000"
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
 
-RABBITMQ_HOST = "localhost"
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 QUEUE_NAME = "tasks"
 
 def get_db_connection():

@@ -21,3 +21,13 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+## Task
+
+- Xem lại DockerFile
+- Xem lại kiểm tra các image
+- Kiểm tra và viết chi tiết các câu lệnh cấu hình để chạy Demo được
+
+- Cố lên nào, 
+
+Hạn chốt bài này: Cuối tuần 10/10

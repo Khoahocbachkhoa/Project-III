@@ -47,6 +47,21 @@ func main() {
 		log.Fatalf("Ping psql thất bại : %v", err)
 	}
 
+	query := `CREATE TABLE IF NOT EXISTS tasks (
+			id VARCHAR(36) PRIMARY KEY,
+			object_name VARCHAR(255) NOT NULL,
+			status VARCHAR(20) DEFAULT 'PENDING',
+			result JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+
+	_, err = dbPool.Exec(ctx, query)
+
+	if err != nil {
+		log.Fatalf("Khởi tạo bảng thất bại: %v", err)
+	}
+
 	log.Println("Đã kết nối PostgreSQL!")
 
 	// Kết nối MinIO
