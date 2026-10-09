@@ -48,7 +48,7 @@ def process_image_task(task_id, bucket_name, object_name, minio_client, db_conn)
     except Exception as e:
         print(f"[Worker] Không đọc được ảnh từ MinIO: {e}")
 
-    # Giả lập kết quả đầu ra
+    # !!! Chưa tích hợp mô hình thật, giả lập kết quả đầu ra
     start_time = time.time()
     mock_delay = random.uniform(1.0, 2.0)
     time.sleep(mock_delay)
