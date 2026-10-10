@@ -9,7 +9,7 @@ Khi client gửi nhiều ảnh cùng lúc, server không xử lý trực tiếp 
 1. Nhận ảnh, lưu trữ và trả về ngay một `task_id`.
 2. Đẩy tác vụ vào hàng đợi (message queue).
 3. Nhiều worker cùng lấy tác vụ từ hàng đợi để xử lý song song.
-4. Số lượng worker tự động tăng/giảm theo độ dài hàng đợi.
+4. Số lượng worker tự động tăng/giảm theo độ dài hàng đợi. 
 5. Client dùng `task_id` để tra cứu trạng thái và kết quả.
 
 ## 2. Kiến trúc
